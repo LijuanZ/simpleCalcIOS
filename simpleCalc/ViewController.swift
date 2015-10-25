@@ -2,7 +2,7 @@
 //  ViewController.swift
 //  simpleCalc
 //
-//  Created by Keran Zheng on 10/22/15.
+//  Created by Lijuan Zhang on 10/22/15.
 //  Copyright © 2015 Lijuan Zhang. All rights reserved.
 //
 
@@ -16,6 +16,8 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var errorMsg: UILabel!
     
+    @IBOutlet weak var rpnSwitch: UISwitch!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -28,7 +30,6 @@ class ViewController: UIViewController {
 
     //Action for clicking digit button
     @IBAction func clickBtnOne(sender: UIButton) {
-        NSLog(sender.titleLabel!.text!)
         //self.textField.text = sender.titleLabel!.text!
         if self.calcLabel.text != nil {
             self.calcLabel.text = self.calcLabel.text! + sender.titleLabel!.text!
@@ -48,8 +49,16 @@ class ViewController: UIViewController {
     //Action for clicking operator button
     @IBAction func clickBtnOper(sender: UIButton) {
         if self.calcLabel.text != nil {
-            self.calcLabel.text = self.calcLabel.text! + " " + sender.titleLabel!.text! + " "
-            NSLog("output" + sender.titleLabel!.text!)
+            if self.rpnSwitch.on {
+                self.calcLabel.text = self.calcLabel.text! + " " + sender.titleLabel!.text!
+                //rpn Calc
+                let inputStr: [String] = getData(self.calcLabel.text!)
+                let result = rpnCalc(inputStr)
+                self.calcLabel.text = self.calcLabel.text! + " = \(result)"
+            }
+            else {
+                self.calcLabel.text = self.calcLabel.text! + " " + sender.titleLabel!.text! + " "
+            }
         }
     }
     
@@ -67,8 +76,6 @@ class ViewController: UIViewController {
     //Action for clicking equal button
     @IBAction func clickBtnEqual(sender: UIButton) {
         if self.calcLabel.text != nil {
-            //self.calcLabel.text = self.calcLabel.text! + " " + sender.titleLabel!.text! + " "
-            
             //Triger calculation
             let inputStr: [String] = getData(self.calcLabel.text!)
             let result = calc(inputStr)
@@ -79,7 +86,6 @@ class ViewController: UIViewController {
     
     //Action for clicking clear button
     @IBAction func clickBtnClear(sender: UIButton) {
-        NSLog("Clear")
         self.calcLabel.text = nil
         self.errorMsg.text = nil
     }
@@ -98,54 +104,27 @@ class ViewController: UIViewController {
         var result: Double = 0
         if inputStr.count >= 2 {
             switch inputStr[1] {
-                case "+", "-", "*", "/", "%":
-                    result = simpleCalc(inputStr)
-                case "Avg", "Count":
-                    result = multiOperCalc(inputStr)
+                case "+":
+                    result = calcTraditional(inputStr, oper: calcAdd)
+                case "-":
+                    result = calcTraditional(inputStr, oper: calcSubtract)
+                case "*":
+                    result = calcTraditional(inputStr, oper: calcMultiply)
+                case "/":
+                    result = calcTraditional(inputStr, oper: calcDivide)
+                case "%":
+                    result = calcTraditional(inputStr, oper: calcMode)
+                case "Avg":
+                    result = calcTraditional(inputStr, oper: calcAvg)
+                case "Count":
+                    result = calcTraditional(inputStr, oper: calcCount)
                 default:
                     self.errorMsg.text = "Invalid input!"
             }
-        }
-        return result
-    }
-    
-    func simpleCalc(inputStr: [String]) -> Double {
-        var result: Double = 0
-        if inputStr.count != 3 {
-            self.errorMsg.text = "Invalid input!"
         }
         else {
-            let inputLeft: Double = convertStrToDouble(inputStr[0])
-            let inputRight: Double = convertStrToDouble(inputStr[2])
-            switch inputStr[1]{
-                case "+":
-                    result = inputLeft + inputRight
-                case "-":
-                    result = inputLeft - inputRight
-                case "*":
-                    result = inputLeft * inputRight
-                case "/":
-                    result = inputLeft / inputRight
-                case "%":
-                    result = inputLeft % inputRight
-                default:
-                    self.errorMsg.text = "Invalid input!"
-            }
+            self.errorMsg.text = "Invalid input!"
         }
-        return result
-    }
-    
-    func multiOperCalc(inputStr: [String]) -> Double {
-        var result: Double = 0
-        switch inputStr[1]{
-            case "Avg":
-                result = calcAvg(inputStr)
-            case "Count":
-                result = Double(calcCount(inputStr))
-            default:
-                self.errorMsg.text = "Invalid input!"
-        }
-        
         return result
     }
     
@@ -161,15 +140,9 @@ class ViewController: UIViewController {
         return true
     }
     
-    func calcAvg(inputStr: [String]) -> Double {
+    func calcTraditional(inputStr: [String], oper: [String] -> Double) -> Double {
         if checkMultiOperCalcInput(inputStr) {
-            var sum : Double = 0
-            var n = 0
-            for var index = 0; index < inputStr.count; index += 2 {
-                sum += convertStrToDouble(inputStr[index])
-                n++
-            }
-            return sum/Double(n)
+            return oper(inputStr)
         }
         else {
             self.errorMsg.text = "Invalid input!"
@@ -177,18 +150,62 @@ class ViewController: UIViewController {
         }
     }
     
-    func calcCount(inputStr: [String]) -> Int {
-        if checkMultiOperCalcInput(inputStr) {
+    func calcAdd(inputStr: [String]) -> Double {
+            var sum : Double = 0
+            for var index = 0; index < inputStr.count; index += 2 {
+                sum += convertStrToDouble(inputStr[index])
+            }
+            return sum
+    }
+    
+    func calcSubtract(inputStr: [String]) -> Double {
+        var result : Double = convertStrToDouble(inputStr[0])
+        for var index = 2; index < inputStr.count; index += 2 {
+            result -= convertStrToDouble(inputStr[index])
+        }
+        return result
+    }
+    
+    func calcMultiply(inputStr: [String]) -> Double {
+        var result : Double = 1.0
+        for var index = 0; index < inputStr.count; index += 2 {
+            result *= convertStrToDouble(inputStr[index])
+        }
+        return result
+    }
+    
+    func calcDivide(inputStr: [String]) -> Double {
+        var result : Double = convertStrToDouble(inputStr[0])
+        for var index = 2; index < inputStr.count; index += 2 {
+            result /= convertStrToDouble(inputStr[index])
+        }
+        return result
+    }
+    
+    func calcMode(inputStr: [String]) -> Double {
+        var result : Double = convertStrToDouble(inputStr[0])
+        for var index = 2; index < inputStr.count; index += 2 {
+            result %= convertStrToDouble(inputStr[index])
+        }
+        return result
+    }
+    
+    func calcAvg(inputStr: [String]) -> Double {
+            var sum : Double = 0
+            var n = 0
+            for var index = 0; index < inputStr.count; index += 2 {
+                sum += convertStrToDouble(inputStr[index])
+                n++
+            }
+            return sum/Double(n)
+    }
+    
+    func calcCount(inputStr: [String]) -> Double {
             var n = 0
             for var index = 0; index < inputStr.count; index += 2 {
                 n++
             }
-            return n
-        }
-        else {
-            self.errorMsg.text = "Invalid input!"
-            return 0
-        }
+            return Double(n)
     }
     
     func fact(inputStr: [String]) -> Int {
@@ -202,6 +219,104 @@ class ViewController: UIViewController {
             result *= value
         }
         
+        return result
+    }
+    
+    func rpnCalc(inputData: [String]) -> Double {
+        var result: Double = 0.0
+        let length = inputData.count
+        
+        //Get operation
+        let oper = inputData.last!
+        
+        //Get data
+        let dataStrArr = Array(inputData[0..<length - 1])
+        let dataDoubleArr = convertStrArrToDouble(dataStrArr)
+        
+        
+        switch oper {
+        case "Count":
+            result = Double(dataDoubleArr.count)
+        case "Avg":
+            result = rpnCalcAvg(dataDoubleArr)
+        case "Fact":
+            if dataDoubleArr.count > 1 {
+                self.errorMsg.text = "Invalid input! Fact operation can only take one number"
+            }
+            else {
+                result = Double(fact(inputData))
+            }
+        case "+":
+            result = rpnAdd(dataDoubleArr)
+        case "-":
+            result = rpnSubtract(dataDoubleArr)
+        case "*":
+            result = rpnMultiply(dataDoubleArr)
+        case "/":
+            result = rpnDivide(dataDoubleArr)
+        case "%":
+            result = rpnMode(dataDoubleArr)
+        default:
+            self.errorMsg.text = "Invalid input"
+        }
+        
+        return result
+
+    }
+    
+    func convertStrArrToDouble(inputArr:[String]) -> [Double] {
+        let doubleArr = inputArr.map {
+            ($0 as NSString).doubleValue
+        }
+        return doubleArr
+    }
+    
+    func rpnCalcAvg(dataArr:[Double]) -> Double {
+        var sum : Double = 0
+        for var index = 0; index < dataArr.count; index++ {
+            sum += dataArr[index]
+        }
+        return sum / Double(dataArr.count)
+    }
+    
+    func rpnAdd(dataArr:[Double]) -> Double {
+        var sum : Double = 0
+        for var index = 0; index < dataArr.count; index++ {
+            sum += dataArr[index]
+        }
+        
+        return sum
+    }
+    
+    func rpnSubtract(dataArr:[Double]) -> Double {
+        var result: Double = dataArr[0]
+        for var index = 1; index < dataArr.count; index++ {
+            result -= dataArr[index]
+        }
+        return result
+    }
+    
+    func rpnMultiply(dataArr:[Double]) -> Double {
+        var result : Double = 1
+        for number in dataArr {
+            result *= number
+        }
+        return result
+    }
+    
+    func rpnDivide(dataArr:[Double]) -> Double {
+        var result: Double = dataArr[0]
+        for var index = 1; index < dataArr.count; index++ {
+            result /= dataArr[index]
+        }
+        return result
+    }
+    
+    func rpnMode(dataArr:[Double]) -> Double {
+        var result: Double = dataArr[0]
+        for var index = 1; index < dataArr.count; index++ {
+            result %= dataArr[index]
+        }
         return result
     }
 }
